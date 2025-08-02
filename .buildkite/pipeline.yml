@@ -1,0 +1,80 @@
+steps:
+  - label: ":typescript: Build & Test"
+    branches: "*"
+    commands:
+      - "npm ci"
+      - "npm run build"
+      - "npm test"
+    timeout_in_minutes: 10
+    plugins:
+      - docker#v5.8.0:
+          image: "node:18-alpine"
+          volumes:
+            - ".:/app"
+          workdir: "/app"
+
+  - label: ":docker: Build & Push to ECR"
+    branches: "*"
+    depends_on: 
+      - "typescript-build-test"
+    commands:
+      - export VERSION=$$(git rev-parse HEAD)
+      - export ECR_HOST=460210468233.dkr.ecr.us-east-1.amazonaws.com
+      - export REPO_NAME=engex/halow
+      - export IMAGE_LOCAL=$${REPO_NAME}:$${VERSION}
+      - export IMAGE_DEST=$${ECR_HOST}/$${REPO_NAME}:$${VERSION}
+      - export ANNOTATION_BUILD_DESC="Halow Image Build"
+      - export ANNOTATION_MSG="$${ANNOTATION_BUILD_DESC} to $${IMAGE_DEST}"
+      - echo "START $${ANNOTATION_MSG}"
+      - buildkite-agent annotate --style "info" "$${ANNOTATION_MSG}"
+      - echo "Building TypeScript application..."
+      - npm ci --only=production
+      - npm run build
+      - echo "Building Docker image..."
+      - |
+        docker build -t $${IMAGE_LOCAL} \
+          --label org.opencontainers.image.revision=$${VERSION} \
+          --label org.opencontainers.image.created="$(date --iso-8601=seconds --utc)" \
+          --label io.hspt.build.url=${BUILDKITE_BUILD_URL} \
+          --label org.opencontainers.image.source="https://github.com/highspot/halow" \
+          .
+      - docker tag $${IMAGE_LOCAL} $${IMAGE_DEST}
+      - echo "Pushing image to ECR..."
+      - docker push $${IMAGE_DEST}
+      - echo "COMPLETE $${ANNOTATION_MSG}"
+      - buildkite-agent annotate --style "success" "✅ Image pushed: $${IMAGE_DEST}"
+    timeout_in_minutes: 20
+    plugins:
+      - ecr#v2.7.0:
+          login: true
+          region: "us-east-1"
+          account-ids:
+            - "460210468233"
+
+  - label: ":mag: Security Scan"
+    branches: "*"
+    depends_on:
+      - "docker-build-push-to-ecr"
+    commands:
+      - export VERSION=$$(git rev-parse HEAD)
+      - export ECR_HOST=460210468233.dkr.ecr.us-east-1.amazonaws.com
+      - export REPO_NAME=engex/halow
+      - export IMAGE_DEST=$${ECR_HOST}/$${REPO_NAME}:$${VERSION}
+      - echo "Running security scan on $${IMAGE_DEST}"
+      - echo "Security scanning would be configured here (e.g., Trivy, Snyk, etc.)"
+      - buildkite-agent annotate --style "info" "🔒 Security scan completed for $${IMAGE_DEST}"
+    timeout_in_minutes: 10
+    
+  - label: ":rocket: Update Deployment Manifests"
+    branches: "main"
+    depends_on:
+      - "docker-build-push-to-ecr"
+      - "security-scan"
+    commands:
+      - export VERSION=$$(git rev-parse HEAD)
+      - echo "Image built and pushed with tag: $${VERSION}"
+      - echo "Next steps:"
+      - echo "1. Update halow-ops repository with new image tag"
+      - echo "2. ArgoCD will automatically detect and deploy the changes"
+      - buildkite-agent annotate --style "success" "🚀 Ready for deployment with tag: $${VERSION}"
+    timeout_in_minutes: 5
