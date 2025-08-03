@@ -10,7 +10,7 @@ import { DashboardController } from './controllers/dashboard';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3400;
+const port = parseInt(process.env.PORT || '3400', 10);
 
 // Configure view engine
 app.set('view engine', 'ejs');

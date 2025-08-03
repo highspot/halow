@@ -20,11 +20,25 @@ export class DashboardController {
       });
     } catch (error) {
       console.error('Error rendering dashboard:', error);
-      res.status(500).render('error', {
-        title: 'Error',
-        message: 'Failed to load dashboard data',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      
+      // For AWS credential errors, show dashboard with empty data instead of error page
+      if (error instanceof Error && error.message.includes('CredentialsProviderError')) {
+        res.render('dashboard', {
+          title: 'Halow Dashboard',
+          items: [],
+          environment: process.env.NODE_ENV || 'development',
+          tableName: process.env.DYNAMODB_TABLE_NAME || 'halow-data',
+          awsError: 'Could not connect to DynamoDB. Please configure AWS credentials.'
+        });
+      } else {
+        res.status(500).render('error', {
+          title: 'Error',
+          message: 'Failed to load dashboard data',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          environment: process.env.NODE_ENV || 'development',
+          tableName: process.env.DYNAMODB_TABLE_NAME || 'halow-data'
+        });
+      }
     }
   }
 
