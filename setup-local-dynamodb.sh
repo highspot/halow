@@ -17,8 +17,6 @@ echo "✅ DynamoDB Local is running on port 8000"
 
 # Set environment variables for DynamoDB Local
 export AWS_ENDPOINT_URL=http://localhost:8000
-export AWS_ACCESS_KEY_ID=dummy
-export AWS_SECRET_ACCESS_KEY=dummy
 export AWS_REGION=us-east-1
 export DYNAMODB_TABLE_NAME=halow-data-local
 export NODE_ENV=development

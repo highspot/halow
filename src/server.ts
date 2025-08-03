@@ -3,8 +3,10 @@ import path from 'path';
 import dotenv from 'dotenv';
 import expressLayouts from 'express-ejs-layouts';
 import { DynamoDBService } from './services/dynamodb';
+import { SecretsManagerService } from './services/secretsmanager';
 import { HealthController } from './controllers/health';
 import { DashboardController } from './controllers/dashboard';
+import { SecretsController } from './controllers/secrets';
 
 // Load environment variables
 dotenv.config();
@@ -27,16 +29,23 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize services
 const dynamoDBService = new DynamoDBService();
+const secretsManagerService = new SecretsManagerService();
 
 // Initialize controllers
 const healthController = new HealthController();
 const dashboardController = new DashboardController(dynamoDBService);
+const secretsController = new SecretsController(secretsManagerService);
 
 // Routes
 app.get('/', dashboardController.index.bind(dashboardController));
-app.get('/dashboard', dashboardController.index.bind(dashboardController));
+app.get('/deployment', dashboardController.index.bind(dashboardController));
+app.get('/dashboard', dashboardController.index.bind(dashboardController)); // Legacy route
 app.post('/data', dashboardController.addData.bind(dashboardController));
 app.delete('/data/:id', dashboardController.deleteData.bind(dashboardController));
+
+// Secrets routes
+app.get('/secrets', secretsController.index.bind(secretsController));
+app.get('/api/secrets/:secretName/tags', secretsController.getSecretTags.bind(secretsController));
 
 // Health check routes (required for Kubernetes)
 app.get('/probe/startup', healthController.startup.bind(healthController));

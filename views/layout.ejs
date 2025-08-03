@@ -17,11 +17,35 @@
         </div>
     </header>
 
-    <main class="main">
-        <div class="container">
-            <%- body %>
-        </div>
-    </main>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-cogs"></i> Navigation</h3>
+            </div>
+            <ul class="sidebar-nav">
+                <li class="nav-item">
+                    <a href="/deployment" class="nav-link <%= (typeof currentTab !== 'undefined' && currentTab === 'deployment') ? 'active' : '' %>">
+                        <i class="fas fa-rocket"></i>
+                        <span>Deployment</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/secrets" class="nav-link <%= (typeof currentTab !== 'undefined' && currentTab === 'secrets') ? 'active' : '' %>">
+                        <i class="fas fa-key"></i>
+                        <span>Secrets</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-container">
+                <%- body %>
+            </div>
+        </main>
+    </div>
 
     <footer class="footer">
         <div class="container">
